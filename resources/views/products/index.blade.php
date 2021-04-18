@@ -1,6 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .ex1 {
+      font-size: 30px;
+    }
+    .ex2 {
+      font-size: 50px;
+    }
+</style>
 
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
@@ -8,21 +16,40 @@
 
 
     <div class="card">
-        <form action="" method="get" class="card-header">
+        <form  method="POST" action="/search" class="card-header" enctype="multipart/form-data">
+
+            {{-- <form method="POST" id="newsid" action="{{ route('news.update',$news->id) }}" enctype="multipart/form-data">--}}
+                @csrf
+                @method('POST')
+
+
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
                     <input type="text" name="title" placeholder="Product Title" class="form-control">
                 </div>
-                <div class="col-md-2">
-                    <select name="variant" id="" class="form-control">
 
-                    </select>
-                </div>
+
+
+            <div class="col-md-2">
+                <select name="variant" id="" class="form-control">
+                    <option value="">Select a varint</option>
+                    @foreach ($varient as $key => $varint)
+
+                    <option disabled    value=""><b>{{ strtoupper($varint->title) }}</b></option>
+
+                    @foreach ($varint->productVariants as $key => $varintname)
+                    <small class="ml-2">
+                        <option    value="{{ $varintname->id }}"><i>{{  $varintname->variant }}</i> </option></small>
+                    @endforeach
+
+                    @endforeach
+                </select>
+            </div>
 
                 <div class="col-md-3">
                     <div class="input-group">
                         <div class="input-group-prepend">
-                            <span class="input-group-text">Price Range</span>
+                            <span class="input-group-text ">Price Range</span>
                         </div>
                         <input type="text" name="price_from" aria-label="First name" placeholder="From" class="form-control">
                         <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
@@ -46,55 +73,139 @@
                         <th>Title</th>
                         <th>Description</th>
                         <th>Variant</th>
-                        <th width="150px">Action</th>
+                        <th>picture</th>
+                        <th width="100px">Action</th>
                     </tr>
                     </thead>
 
                     <tbody>
 
+
+
+
+
+
+        @foreach($data as  $key => $value)
+
                     <tr>
-                        <td>1</td>
-                        <td>T-Shirt <br> Created at : 25-Aug-2020</td>
-                        <td>Quality product in low cost</td>
+                        <td>{{ $data->firstItem() + $key }}</td>
+
+
+
+                        <td>{{ $value->title }} <br> Created at : {{ $value->created_at->diffForHumans() }}</td>
+                        <td>{{ $value->description }}</td>
+
                         <td>
-                            <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant">
+
+             @foreach($value->productVariantPrices as  $key => $pricevarients)
+
+                            @php
+                                  $varientName = array();
+                            @endphp
+
+                    @foreach($value->productVariants as  $key => $varient)
+
+
+                            @if ($pricevarients->product_variant_one == $varient->id)
+
+                                @php array_push($varientName,$varient->variant); @endphp
+
+                            @elseif ($pricevarients->product_variant_two == $varient->id)
+
+                                @php array_push($varientName,$varient->variant); @endphp
+
+                            @elseif ($pricevarients->product_variant_three == $varient->id)
+                                @php array_push($varientName,$varient->variant); @endphp
+
+                            @endif
+
+
+
+                    @endforeach
+
+                            <dl class="row mb-0" style="height:30px; width:450px; overflow: hidden" id="variant">
 
                                 <dt class="col-sm-3 pb-0">
-                                    SM/ Red/ V-Nick
+
+                                    {{ implode("/",$varientName) }}
                                 </dt>
                                 <dd class="col-sm-9">
                                     <dl class="row mb-0">
-                                        <dt class="col-sm-4 pb-0">Price : {{ number_format(200,2) }}</dt>
-                                        <dd class="col-sm-8 pb-0">InStock : {{ number_format(50,2) }}</dd>
+                                        <dt class="col-sm-4 pb-0">Price : {{ number_format($pricevarients->price) }}</dt>
+                                        <dd class="col-sm-8 pb-0">InStock : {{ number_format($pricevarients->stock) }}</dd>
                                     </dl>
                                 </dd>
                             </dl>
+
+
+              @endforeach
+
+
+
                             <button onclick="$('#variant').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more</button>
+
+
+
                         </td>
+
+                            <td>
+                                @foreach($value->productImages as  $key => $pic)
+                                <img src="{{ $pic->file_path }}" height="50px" width="50px" />
+                                @endforeach
+                            </td>
+
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ route('product.edit', 1) }}" class="btn btn-success">Edit</a>
+                                <a href="{{ route('product.edit', $value->id) }}" class="btn btn-success">Edit</a>
                             </div>
                         </td>
+
+
+
+
                     </tr>
 
+
+         @endforeach
+
+
                     </tbody>
+
+
+
+
+
+
+
+
 
                 </table>
             </div>
 
         </div>
 
+
+
         <div class="card-footer">
             <div class="row justify-content-between">
                 <div class="col-md-6">
-                    <p>Showing 1 to 10 out of 100</p>
-                </div>
-                <div class="col-md-2">
 
+                    <p>Showing {{ $data->firstItem() }} to {{ $data->lastItem() }} out of {{ $data->total() }}</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center pagination ">
+
+                        {{ $data->links() }}
+
+                    </div>
                 </div>
             </div>
         </div>
+
+
+
+
+
     </div>
 
 @endsection

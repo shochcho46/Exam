@@ -145,7 +145,10 @@ export default {
         variants: {
             type: Array,
             required: true
-        }
+        },
+        test:String ,
+
+
     },
     data() {
         return {
@@ -203,6 +206,7 @@ export default {
 
         // check the variant and render all the combination
         checkVariant() {
+             console.log(this.product);
             let tags = [];
             this.product_variant_prices = [];
             this.product_variant.filter((item) => {
@@ -258,7 +262,8 @@ export default {
 
     },
     mounted() {
-        console.log('Component mounted.')
+       
+        console.log('Component mountedcc.');
     }
 }
 </script>

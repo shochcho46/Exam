@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Auth;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -27,3 +27,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('blog', 'BlogController');
     Route::resource('blog-category', 'BlogCategoryController');
 });
+
+Route::post('/fileup', 'ProductController@fileupload')->middleware('auth');
+
+
+Route::post('/search', 'ProductController@search')->middleware('auth');
+
+Route::get('/searchresult/{search}', 'ProductController@searchresult')->middleware('auth')->name('searchresult');
+
