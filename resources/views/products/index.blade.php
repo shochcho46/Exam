@@ -14,7 +14,11 @@
         <h1 class="h3 mb-0 text-gray-800">Products</h1>
     </div>
 
+    @if($errors->any())
+        <h4 class="text-danger text-center">{{$errors->first()}}</h4>
 
+
+    @else
     <div class="card">
         <form  method="POST" action="/search" class="card-header" enctype="multipart/form-data">
 
@@ -207,5 +211,9 @@
 
 
     </div>
+
+    @endif
+
+
 
 @endsection

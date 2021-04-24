@@ -225,18 +225,23 @@ class ProductController extends Controller
 
 
             //imageupload
-
             $imageup = $request->input('product_image');
-            foreach ($imageup as $key => $value) {
-                $ProductImage = new ProductImage;
-                $fullpathurl = url('/') . '/storage/productpic/' . $value;
+            if (!(empty($imageup)))
 
-                $ProductImage->product_id = $productId;
-                $ProductImage->file_path = $fullpathurl;
-                $ProductImage->save();
+
+            {
+
+                foreach ($imageup as $key => $value) {
+                    $ProductImage = new ProductImage;
+                    $fullpathurl = url('/') . '/storage/productpic/' . $value;
+
+                    $ProductImage->product_id = $productId;
+                    $ProductImage->file_path = $fullpathurl;
+                    $ProductImage->save();
+
+                }
 
             }
-
 
 
 
@@ -273,7 +278,20 @@ class ProductController extends Controller
         // dd($product);
 
         $variants = Variant::all();
-        return view('products.edit', compact('variants','product'));
+        $productvarients = ProductVariant::where('product_id', $product->id)->get();
+
+        $productvarientsprice = ProductVariantPrice::where('product_id', $product->id)->get();
+
+        return view('products.edit', compact('variants','product','productvarients','productvarientsprice'));
+    }
+
+    public function productimg($productimg)
+    {
+        $imges = ProductImage::where('product_id', $productimg)->get();
+        return response()->json($imges);
+
+        // return response(json_encode(var_dump( $imges)));
+
     }
 
     /**
@@ -285,7 +303,150 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        //
+        //update product table
+
+        $product->title = $request->input('title');
+        $product->sku = $request->input('sku');
+        $product->description = $request->input('description');
+
+        $product->save();
+
+
+        //image upload
+
+
+        $imageup = $request->input('product_image');
+        if (!(empty($imageup)))
+
+
+        {
+            $ProductImage = new ProductImage;
+            ProductImage::where('product_id', $request->input('id'))->delete();
+
+            foreach ($imageup as $key => $value) {
+                $ProductImage = new ProductImage;
+                $fullpathurl = url('/') . '/storage/productpic/' . $value;
+
+                $ProductImage->product_id = $request->input('id');
+                $ProductImage->file_path = $fullpathurl;
+                $ProductImage->save();
+
+            }
+
+        }
+
+        else
+        {
+            $ProductImage = new ProductImage;
+            ProductImage::where('product_id', $request->input('id'))->delete();
+
+        }
+
+
+        //product varient upload
+
+        $vari = $request->input('product_variant');
+
+        $productId = $request->input('id');
+
+        $ProductVariant = new ProductVariant;
+        ProductVariant::where('product_id', $request->input('id'))->delete();
+
+         foreach ($vari as $key => $p) {
+            $option = $p['option'];
+            $tags = $p['tags'];
+
+            foreach ($tags as $key => $value) {
+                $ProductVariant = new ProductVariant;
+                $ProductVariant->variant_id = $option;
+                $ProductVariant->product_id = $productId;
+                $ProductVariant->variant  = $value;
+                $ProductVariant->save();
+
+            }
+
+
+         }
+
+
+
+
+         //product varient price upload
+
+         $ProductVariantPrice = new ProductVariantPrice;
+         ProductVariantPrice::where('product_id', $request->input('id'))->delete();
+
+        $price =  $request->input('product_variant_prices');
+        foreach ($price as $key =>  $taka) {
+            $ProductVariantPrice = new ProductVariantPrice;
+            $alltag = $taka['title'];
+
+            $separatedtag = (explode("/", $alltag));
+            array_pop($separatedtag);
+            $arraylenght = count($separatedtag);
+
+
+            if (count($separatedtag) == 1) {
+
+
+                $varient= ProductVariant::where('variant', $separatedtag[0])
+                                            ->where('product_id',$productId)->get();
+                $vid = $varient[0]->id;
+                $vid2 = null;
+                $vid1 = null;
+
+            }
+
+            if (count($separatedtag) == 2) {
+
+
+               $varient= ProductVariant::where('variant', $separatedtag[0])
+                                        ->where('product_id',$productId)->get();
+               $vid = $varient[0]->id;
+
+                $varient1 = ProductVariant::where('variant', $separatedtag[1])
+                                            ->where('product_id',$productId)->get();
+                $vid1 = $varient1[0]->id;
+                $vid2 = null;
+
+
+
+            }
+
+            if (count($separatedtag) == 3) {
+
+                $varient= ProductVariant::where('variant', $separatedtag[0])
+                                            ->where('product_id',$productId)->get();
+                $vid = $varient[0]->id;
+
+                $varient1 = ProductVariant::where('variant', $separatedtag[1])
+                                            ->where('product_id',$productId)->get();
+                $vid1 = $varient1[0]->id;
+
+                $varient2 = ProductVariant::where('variant', $separatedtag[2])
+                                            ->where('product_id',$productId)->get();
+                $vid2 = $varient2[0]->id;
+
+            }
+
+
+
+            $ProductVariantPrice->product_variant_one = $vid;
+            $ProductVariantPrice->product_variant_two = $vid1;
+            $ProductVariantPrice->product_variant_three = $vid2;
+
+
+            $ProductVariantPrice->price = $taka['price'];
+            $ProductVariantPrice->stock = $taka['stock'];
+            $ProductVariantPrice->product_id = $productId;
+            $ProductVariantPrice->save();
+
+        }
+
+
+
+
+        return response(json_encode(var_dump($request->all())));
     }
 
     /**
@@ -324,6 +485,8 @@ class ProductController extends Controller
         $date = $request->input('date');
 
 
+
+
         if (empty($variant)) {
             $variant = "empty";
           }
@@ -338,8 +501,9 @@ class ProductController extends Controller
                                 // ->join('product_variants', 'products.id', '=', 'product_variants.product_id')
                                 // ->select('products.*', 'product_variant_prices.*', 'product_variants.*')
                                 ->select('products.*','product_variant_prices.*')
-                                // ->where('products.title',$title)
-                                ->where('products.title', 'like', '%'.$title.'%')
+                                ->orwhere('products.title',$title)
+                                // ->where('products.title', 'like', '%'.$title.'%')
+
                                  ->orwhere('product_variant_prices.product_variant_one',$variant)
                                 ->orwhere('product_variant_prices.product_variant_two',$variant)
                                 ->orwhere('product_variant_prices.product_variant_three',$variant)
@@ -351,7 +515,14 @@ class ProductController extends Controller
 
 
 
+                                //  dd($variant, $gdata);
 
+
+            if (count( $gdata)==0) {
+
+                // dd( $gdata);
+                return  back()->withErrors(['Sorry No Data Found', 'Sorry No Data Found']);
+            }
 
         foreach ($gdata as $key => $value) {
 

@@ -28,7 +28,7 @@
                         <h6 class="m-0 font-weight-bold text-primary">Media</h6>
                     </div>
                     <div class="card-body border">
-                        <vue-dropzone ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"   v-on:vdropzone-success="uploadSuccess" ></vue-dropzone>
+                        <vue-dropzone ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"   v-on:vdropzone-success="uploadSuccess" v-on:vdropzone-removed-file="removefile" ></vue-dropzone>
                     </div>
                 </div>
 
@@ -62,7 +62,7 @@
 
                             <div class="col-md-8">
                                 <div class="form-group">
-                                    <label v-if="product_variant.length != 1" @click="product_variant.splice(index,1); checkVariant"
+                                    <label v-if="product_variant.length != 1" @click="product_variant.splice(index,1); checkVariant();"
                                            class="float-right text-primary"
                                            style="cursor: pointer;">Remove</label>
                                     <label v-else for="">.</label>
@@ -72,19 +72,7 @@
 
 
 
-                            <!-- <div class="col-md-8">
-                                <div class="form-group">
-                                    <label v-if="product_variant.length != 1" @click="product_variant.splice(index,1); checkVariant"
-                                           class="float-right text-primary"
-                                           style="cursor: pointer;">Remove</label>
-                                    <label v-else for="">.</label>
-                                    <div>
-    <label for="tags-basic">Type a new tag and press enter</label>
-    <b-form-tags input-id="tags-basic" v-model="value"></b-form-tags>
-    <p class="mt-2">Value: {{ value }}</p>
-  </div>
-                                </div>
-                            </div> -->
+
 
 
 
@@ -126,7 +114,7 @@
             </div>
         </div>
 
-        <button @click="saveProduct" type="submit" class="btn btn-lg btn-primary">Save</button>
+        <button @click="updateProduct" type="submit" class="btn btn-lg btn-primary">Update</button>
         <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
     </section>
 </template>
@@ -146,22 +134,33 @@ export default {
             type: Array,
             required: true
         },
-        test:String ,
+        product:{},
+        productvarients:{},
+        varientsprice:Array,
 
 
     },
     data() {
         return {
+            checkrowprice:[],
+            getimage:'',
             product_name: '',
             product_sku: '',
             description: '',
-            pic:'',
+            tagarray:[],
+            varientoption:[],
             images: [],
+            provarients: [],
+
+            editid:'',
+
             product_variant: [
                 {
-                    option: this.variants[0].id,
+                    option: '',
                     tags: []
-                }
+                },
+
+
             ],
             product_variant_prices: [],
 
@@ -169,8 +168,9 @@ export default {
             dropzoneOptions: {
 
                  url: "/fileup",
-                thumbnailWidth: 100,
+                thumbnailWidth: 150,
                 maxFilesize:100,
+                addRemoveLinks:true,
                 headers: {
                 "X-CSRF-TOKEN": document.head.querySelector("[name=csrf-token]").content
                }
@@ -182,11 +182,25 @@ export default {
     methods: {
 
 
+
+
+
+
             uploadSuccess: function(file, response) {
-                 console.log(file.name);
-                  console.log(response);
 
                   this.images.push( file.name );
+                  console.log(this.images);
+
+                },
+
+                removefile: function(file, error, xhr)
+                {
+                    let filename = file.name;
+
+                     let result =  this.images.filter(picname => picname !== filename);
+
+                        this.images = result;
+                     console.log(this.images);
 
                 },
 
@@ -204,22 +218,59 @@ export default {
             })
         },
 
+
+
+
         // check the variant and render all the combination
-        checkVariant() {
-             console.log(this.product);
+       checkVariant() {
+            //this.currentarray();
             let tags = [];
+            var getcurrnttag = [];
+            var new_product_varient_price = this.product_variant_prices;
             this.product_variant_prices = [];
             this.product_variant.filter((item) => {
                 tags.push(item.tags);
             })
 
+                console.log(tags);
+
             this.getCombn(tags).forEach(item => {
-                this.product_variant_prices.push({
-                    title: item,
-                    price: 0,
-                    stock: 0
-                })
+
+                  getcurrnttag.push(item);
+
+
             })
+
+            getcurrnttag.forEach(itemtitle => {
+                 new_product_varient_price.forEach(storetitle => {
+
+                        if (storetitle.title === itemtitle) {
+                                 this.product_variant_prices.push({
+                                title: itemtitle,
+                                price: storetitle.price,
+                                stock: storetitle.stock,
+                            })
+
+                             getcurrnttag = getcurrnttag.filter(e => e !== itemtitle);
+
+                        }
+
+                    })
+
+                })
+
+                    getcurrnttag.forEach(settitle =>{
+
+                         this.product_variant_prices.push({
+                                title: settitle,
+                                price: 0,
+                                stock: 0,
+                            })
+
+                    })
+                    getcurrnttag =[];
+
+
         },
 
         // combination algorithm
@@ -235,35 +286,199 @@ export default {
             return ans;
         },
 
+
+        provariencepricecal(){
+
+            // this.product_variant_prices = this.varientsprice;
+
+           this.varientsprice.forEach(value => {
+
+                var gettitle = [];
+               var bbvalue ="";
+               this.productvarients.forEach(element => {
+
+                   var one = "";
+                   var two = "";
+                   var three = "";
+
+                   if ((value.product_variant_one)&&(value.product_variant_one === element.id)) {
+
+                       one = element.variant
+                       if (one) {
+                            gettitle.push(one+'/');
+                       }
+
+                   }
+
+                   if ((value.product_variant_two)&&(value.product_variant_two === element.id)) {
+
+                       two = element.variant
+                       if (two) {
+                            gettitle.push(two+'/');
+                       }
+
+                   }
+
+                   if ((value.product_variant_three)&&(value.product_variant_three === element.id)) {
+
+                       three = element.variant
+
+                       if (three) {
+                            gettitle.push(three);
+                       }
+
+                   }
+
+
+
+
+             });
+
+                    var newStr = gettitle.join('').trim()
+
+
+
+
+
+                    var  titelname = newStr;
+                    var pprice =value.price;
+                    var pstock = value.stock;
+
+
+
+                        this.product_variant_prices.push({title: titelname , price : pprice, stock: pstock})
+                        this.checkrowprice.push(newStr);
+
+             });
+
+             console.log(this.product_variant_prices);
+             console.log(this.checkrowprice);
+
+
+        },
+
         // store product into database
-        saveProduct() {
+        updateProduct() {
             let product = {
                 title: this.product_name,
                 sku: this.product_sku,
                 description: this.description,
+                id: this.editid,
+
                 product_image: this.images,
-                // product_image: this.pic,
+
                 product_variant: this.product_variant,
                  product_variant_prices: this.product_variant_prices
             }
 
 
-            axios.post('/product', product).then(response => {
+
+            axios.put('/product/'+ this.editid, product).then(response => {
 
                 console.log(response.data);
+                alert("data has been updated successfully")
+
             }).catch(error => {
                 console.log(error);
             })
 
             // console.log(product);
 
+        },
+
+        productvarientprice(){
+
+            this.productvarients.forEach(element => {
+
+                    if (!(this.provarients.includes(element.variant_id))) {
+                        this.provarients.push(element.variant_id);
+
+                    }
+
+
+             });
+
+             this.provarients.forEach(el => {
+                 this.tagarray = [];
+                //  this.product_variant={};
+
+                 this.productvarients.forEach(nel => {
+
+                    if(el == nel.variant_id)
+                    {
+                        this.tagarray.push(nel.variant);
+                    }
+
+             });
+
+                   var  option = el;
+                    var tag = this.tagarray;
+
+                        this.product_variant.push({option: option , tags : tag })
+
+
+             });
+
+
+                this.product_variant.shift();
+
+
+        },
+
+         getimg() {
+
+
+            axios.get('/productimg/'+ this.editid,).then(response => {
+                this.getimage = response.data;
+
+
+
+                this.getimage.forEach(element => {
+
+                    var url = element.file_path;
+                     var filename = url.split("/").pop();
+                      var file = { size: 123, name: filename, type: "image/png/jpg/jpeg/gif" };
+                    this.$refs.myVueDropzone.manuallyAddFile(file, url);
+
+                    this.images.push( file.name );
+
+                });
+
+
+
+
+                console.log(this.images);
+            }).catch(error => {
+                console.log(error);
+            })
+
+            // console.log(product);
         }
 
 
     },
     mounted() {
-       
+
+        this.product_name = this.product.title;
+        this.product_sku = this.product.sku;
+        this.description = this.product.description;
+        this.editid = this.product.id;
+
+
         console.log('Component mountedcc.');
+        console.log(this.product_variant_prices);
+         this.provariencepricecal();
+
+        this.getimg();
+        this.productvarientprice();
+
+
+
+
+
+
+
+
     }
 }
 </script>

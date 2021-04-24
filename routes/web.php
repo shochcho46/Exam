@@ -35,3 +35,4 @@ Route::post('/search', 'ProductController@search')->middleware('auth');
 
 Route::get('/searchresult/{search}', 'ProductController@searchresult')->middleware('auth')->name('searchresult');
 
+Route::get('/productimg/{productimg}', 'ProductController@productimg')->middleware('auth')->name('productimg');

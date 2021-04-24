@@ -2300,18 +2300,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 
 
 
@@ -2325,24 +2313,32 @@ __webpack_require__.r(__webpack_exports__);
       type: Array,
       required: true
     },
-    test: String
+    product: {},
+    productvarients: {},
+    varientsprice: Array
   },
   data: function data() {
     return {
+      checkrowprice: [],
+      getimage: '',
       product_name: '',
       product_sku: '',
       description: '',
-      pic: '',
+      tagarray: [],
+      varientoption: [],
       images: [],
+      provarients: [],
+      editid: '',
       product_variant: [{
-        option: this.variants[0].id,
+        option: '',
         tags: []
       }],
       product_variant_prices: [],
       dropzoneOptions: {
         url: "/fileup",
-        thumbnailWidth: 100,
+        thumbnailWidth: 150,
         maxFilesize: 100,
+        addRemoveLinks: true,
         headers: {
           "X-CSRF-TOKEN": document.head.querySelector("[name=csrf-token]").content
         }
@@ -2351,9 +2347,16 @@ __webpack_require__.r(__webpack_exports__);
   },
   methods: {
     uploadSuccess: function uploadSuccess(file, response) {
-      console.log(file.name);
-      console.log(response);
       this.images.push(file.name);
+      console.log(this.images);
+    },
+    removefile: function removefile(file, error, xhr) {
+      var filename = file.name;
+      var result = this.images.filter(function (picname) {
+        return picname !== filename;
+      });
+      this.images = result;
+      console.log(this.images);
     },
     // it will push a new object into product variant
     newVariant: function newVariant() {
@@ -2378,19 +2381,41 @@ __webpack_require__.r(__webpack_exports__);
     checkVariant: function checkVariant() {
       var _this = this;
 
-      console.log(this.product);
+      //this.currentarray();
       var tags = [];
+      var getcurrnttag = [];
+      var new_product_varient_price = this.product_variant_prices;
       this.product_variant_prices = [];
       this.product_variant.filter(function (item) {
         tags.push(item.tags);
       });
+      console.log(tags);
       this.getCombn(tags).forEach(function (item) {
+        getcurrnttag.push(item);
+      });
+      getcurrnttag.forEach(function (itemtitle) {
+        new_product_varient_price.forEach(function (storetitle) {
+          if (storetitle.title === itemtitle) {
+            _this.product_variant_prices.push({
+              title: itemtitle,
+              price: storetitle.price,
+              stock: storetitle.stock
+            });
+
+            getcurrnttag = getcurrnttag.filter(function (e) {
+              return e !== itemtitle;
+            });
+          }
+        });
+      });
+      getcurrnttag.forEach(function (settitle) {
         _this.product_variant_prices.push({
-          title: item,
+          title: settitle,
           price: 0,
           stock: 0
         });
       });
+      getcurrnttag = [];
     },
     // combination algorithm
     getCombn: function getCombn(arr, pre) {
@@ -2406,26 +2431,141 @@ __webpack_require__.r(__webpack_exports__);
       }, []);
       return ans;
     },
+    provariencepricecal: function provariencepricecal() {
+      var _this2 = this;
+
+      // this.product_variant_prices = this.varientsprice;
+      this.varientsprice.forEach(function (value) {
+        var gettitle = [];
+        var bbvalue = "";
+
+        _this2.productvarients.forEach(function (element) {
+          var one = "";
+          var two = "";
+          var three = "";
+
+          if (value.product_variant_one && value.product_variant_one === element.id) {
+            one = element.variant;
+
+            if (one) {
+              gettitle.push(one + '/');
+            }
+          }
+
+          if (value.product_variant_two && value.product_variant_two === element.id) {
+            two = element.variant;
+
+            if (two) {
+              gettitle.push(two + '/');
+            }
+          }
+
+          if (value.product_variant_three && value.product_variant_three === element.id) {
+            three = element.variant;
+
+            if (three) {
+              gettitle.push(three);
+            }
+          }
+        });
+
+        var newStr = gettitle.join('').trim();
+        var titelname = newStr;
+        var pprice = value.price;
+        var pstock = value.stock;
+
+        _this2.product_variant_prices.push({
+          title: titelname,
+          price: pprice,
+          stock: pstock
+        });
+
+        _this2.checkrowprice.push(newStr);
+      });
+      console.log(this.product_variant_prices);
+      console.log(this.checkrowprice);
+    },
     // store product into database
-    saveProduct: function saveProduct() {
+    updateProduct: function updateProduct() {
       var product = {
         title: this.product_name,
         sku: this.product_sku,
         description: this.description,
+        id: this.editid,
         product_image: this.images,
-        // product_image: this.pic,
         product_variant: this.product_variant,
         product_variant_prices: this.product_variant_prices
       };
-      axios.post('/product', product).then(function (response) {
+      axios.put('/product/' + this.editid, product).then(function (response) {
         console.log(response.data);
+        alert("data has been updated successfully");
+      })["catch"](function (error) {
+        console.log(error);
+      }); // console.log(product);
+    },
+    productvarientprice: function productvarientprice() {
+      var _this3 = this;
+
+      this.productvarients.forEach(function (element) {
+        if (!_this3.provarients.includes(element.variant_id)) {
+          _this3.provarients.push(element.variant_id);
+        }
+      });
+      this.provarients.forEach(function (el) {
+        _this3.tagarray = []; //  this.product_variant={};
+
+        _this3.productvarients.forEach(function (nel) {
+          if (el == nel.variant_id) {
+            _this3.tagarray.push(nel.variant);
+          }
+        });
+
+        var option = el;
+        var tag = _this3.tagarray;
+
+        _this3.product_variant.push({
+          option: option,
+          tags: tag
+        });
+      });
+      this.product_variant.shift();
+    },
+    getimg: function getimg() {
+      var _this4 = this;
+
+      axios.get('/productimg/' + this.editid).then(function (response) {
+        _this4.getimage = response.data;
+
+        _this4.getimage.forEach(function (element) {
+          var url = element.file_path;
+          var filename = url.split("/").pop();
+          var file = {
+            size: 123,
+            name: filename,
+            type: "image/png/jpg/jpeg/gif"
+          };
+
+          _this4.$refs.myVueDropzone.manuallyAddFile(file, url);
+
+          _this4.images.push(file.name);
+        });
+
+        console.log(_this4.images);
       })["catch"](function (error) {
         console.log(error);
       }); // console.log(product);
     }
   },
   mounted: function mounted() {
+    this.product_name = this.product.title;
+    this.product_sku = this.product.sku;
+    this.description = this.product.description;
+    this.editid = this.product.id;
     console.log('Component mountedcc.');
+    console.log(this.product_variant_prices);
+    this.provariencepricecal();
+    this.getimg();
+    this.productvarientprice();
   }
 });
 
@@ -51266,7 +51406,10 @@ var render = function() {
               _c("vue-dropzone", {
                 ref: "myVueDropzone",
                 attrs: { id: "dropzone", options: _vm.dropzoneOptions },
-                on: { "vdropzone-success": _vm.uploadSuccess }
+                on: {
+                  "vdropzone-success": _vm.uploadSuccess,
+                  "vdropzone-removed-file": _vm.removefile
+                }
               })
             ],
             1
@@ -51325,9 +51468,9 @@ var render = function() {
                           { domProps: { value: variant.id } },
                           [
                             _vm._v(
-                              "\n                                          " +
+                              "\n                                        " +
                                 _vm._s(variant.title) +
-                                "\n                                      "
+                                "\n                                    "
                             )
                           ]
                         )
@@ -51351,7 +51494,7 @@ var render = function() {
                               on: {
                                 click: function($event) {
                                   _vm.product_variant.splice(index, 1)
-                                  _vm.checkVariant
+                                  _vm.checkVariant()
                                 }
                               }
                             },
@@ -51479,9 +51622,9 @@ var render = function() {
       {
         staticClass: "btn btn-lg btn-primary",
         attrs: { type: "submit" },
-        on: { click: _vm.saveProduct }
+        on: { click: _vm.updateProduct }
       },
-      [_vm._v("Save")]
+      [_vm._v("Update")]
     ),
     _vm._v(" "),
     _c(
